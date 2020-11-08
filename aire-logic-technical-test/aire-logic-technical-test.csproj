@@ -6,4 +6,9 @@
     <RootNamespace>aire_logic_technical_test</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="MetaBrainz.MusicBrainz" Version="3.0.2" />
+    <PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="5.2.7" />
+  </ItemGroup>
+
 </Project>
