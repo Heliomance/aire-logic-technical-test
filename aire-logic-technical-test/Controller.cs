@@ -14,28 +14,39 @@ namespace aire_logic_technical_test
     {
         public async Task Run()
         {
-            Console.WriteLine("Please enter the name of the artist you would like to find average song length for:");
-            var input = Console.ReadLine();
-
-            Console.WriteLine("Finding artist...");
-
-            var artist = await FindArtistByName(input);
-
-            Console.WriteLine($"Artist found. Calculating average song length for artist {artist.Name}");
-            Console.WriteLine("Please wait...");
-
-            var average = await GetArtistAverageSongLength(artist);
-
-            if (average < 0)
+            while (true)
             {
-                Console.WriteLine("Unfortunately, we couldn't find the lyrics for any songs by that artist, or all of that artist's works are instrumental.");
-            }
-            else
-            {
-                Console.WriteLine($"Average song length: {average} words");
-            }
+                Console.WriteLine(
+                    "Please enter the name of the artist you would like to find average song length for:");
+                var input = Console.ReadLine();
 
-            Console.ReadLine();
+                Console.WriteLine("Finding artist...");
+
+                var artist = await FindArtistByName(input);
+
+                Console.WriteLine($"Artist found. Calculating average song length for artist {artist.Name}");
+                Console.WriteLine("Please wait...");
+
+                var average = await GetArtistAverageSongLength(artist);
+
+                if (average < 0)
+                {
+                    Console.WriteLine(
+                        "Unfortunately, we couldn't find the lyrics for any songs by that artist, or all of that artist's works are instrumental.");
+                }
+                else
+                {
+                    Console.WriteLine($"Average song length: {average} words");
+                }
+
+                Console.WriteLine("Would you like to perform another lookup? Y/N");
+                char response = Utils.GetInput(new[] {'y', 'n'});
+
+                if (response == 'n')
+                {
+                    return;
+                }
+            }
         }
 
         public async Task<int> GetSongLength(string artist, string songTitle)
@@ -57,7 +68,8 @@ namespace aire_logic_technical_test
             return (await q.FindArtistsAsync($"name:{artist}")).Results[0].Item;
         }
 
-        // BUG: This is currently returning inconsistent values if run multiple times with the same artist. Check responses from lyrics API?
+        // BUG: This is currently returning inconsistent values if run multiple times with the same artist. Lyrics API sometimes returns an empty string for a song even if it does have it in its
+        // database and has successfully retrieved it before. Reason is unknown - rate limiting? - but is very difficult to filter for as it still returns a 200 response
         public async Task<double> GetArtistAverageSongLength(IArtist artist)
         {
             var q = new Query("Aire Logic Technical Test", "1.0", "heliomance.github.com");
@@ -72,8 +84,12 @@ namespace aire_logic_technical_test
                 lyricLengthLookups.AddRange(works.Results.Select(work => GetSongLength(artist.Name, work.Title)));
             }
 
+            Console.WriteLine($"Found {lyricLengthLookups.Count} works by that artist on MusicBrainz");
+
             // Only count non-instrumental songs where the lyrics where actually found
             var songLengths = (await Task.WhenAll(lyricLengthLookups)).Where(l => l > 0).ToList();
+
+            Console.WriteLine($"Found lyrics for {songLengths.Count} songs");
 
             // If no songs are found, or all songs are instrumental, return -1 without further calculation (avoids an error if the lyrics API doesn't have any songs by that artist)
             if (songLengths.Any())
